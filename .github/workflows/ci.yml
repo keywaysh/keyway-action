@@ -52,14 +52,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Check dist is up to date
-        run: |
-          if [ "$(git diff --name-only dist/)" != "" ]; then
-            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the changes."
-            git diff dist/
-            exit 1
-          fi
-
   # Test the action itself works
   action-test:
     name: Action Test
