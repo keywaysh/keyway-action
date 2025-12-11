@@ -75,3 +75,41 @@ jobs:
 
           git tag -fa $MAJOR -m "Update $MAJOR tag to $VERSION"
           git push origin $MAJOR --force
+
+  # Trigger E2E tests in the test repo
+  trigger-e2e-tests:
+    name: Trigger E2E Tests
+    runs-on: ubuntu-latest
+    needs: update-major-tag
+    steps:
+      - name: Trigger E2E workflow
+        run: |
+          gh workflow run test.yml \
+            --repo keywaysh/keyway-action-test \
+            --ref main
+        env:
+          GH_TOKEN: ${{ secrets.E2E_TRIGGER_TOKEN }}
+
+      - name: Wait for E2E completion
+        run: |
+          echo "Waiting for E2E workflow to start..."
+          sleep 10
+
+          # Get the latest run
+          RUN_ID=$(gh run list \
+            --repo keywaysh/keyway-action-test \
+            --workflow test.yml \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+
+          echo "Watching run $RUN_ID..."
+          gh run watch $RUN_ID --repo keywaysh/keyway-action-test --exit-status
+        env:
+          GH_TOKEN: ${{ secrets.E2E_TRIGGER_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::E2E tests failed for release ${{ github.ref_name }}!"
+          echo "Check: https://github.com/keywaysh/keyway-action-test/actions"
