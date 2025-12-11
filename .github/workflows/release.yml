@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Verify dist is current
+        run: |
+          if [ "$(git diff --name-only dist/)" != "" ]; then
+            echo "::error::dist/ is out of date with the tagged version"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Usage
+
+            ```yaml
+            - uses: keywaysh/keyway-action@${{ github.ref_name }}
+              with:
+                token: ${{ secrets.KEYWAY_TOKEN }}
+            ```
+
+            See [README](https://github.com/keywaysh/keyway-action#readme) for full documentation.
+
+  # Update major version tag (v1, v2, etc.)
+  update-major-tag:
+    name: Update Major Version Tag
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update major version tag
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+
+          echo "Updating $MAJOR tag to point to $VERSION"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -fa $MAJOR -m "Update $MAJOR tag to $VERSION"
+          git push origin $MAJOR --force

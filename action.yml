@@ -1,0 +1,43 @@
+name: 'Keyway Secrets'
+description: 'Pull secrets from Keyway vault and export as environment variables'
+author: 'keyway.sh'
+branding:
+  icon: 'lock'
+  color: 'purple'
+
+inputs:
+  token:
+    description: 'Keyway authentication token (from device flow or GitHub PAT)'
+    required: true
+  environment:
+    description: 'Vault environment to pull secrets from (development, staging, production)'
+    required: false
+    default: 'production'
+  repository:
+    description: 'Repository in owner/repo format (auto-detected from GITHUB_REPOSITORY if not specified)'
+    required: false
+  export-env:
+    description: 'Export secrets as environment variables for subsequent steps'
+    required: false
+    default: 'true'
+  env-file:
+    description: 'Write secrets to a .env file at this path (optional)'
+    required: false
+  mask-values:
+    description: 'Mask secret values in workflow logs'
+    required: false
+    default: 'true'
+  api-url:
+    description: 'Keyway API URL (for enterprise/self-hosted installations)'
+    required: false
+    default: 'https://api.keyway.sh'
+
+outputs:
+  secrets-count:
+    description: 'Number of secrets pulled from the vault'
+  environment:
+    description: 'Environment that secrets were pulled from'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

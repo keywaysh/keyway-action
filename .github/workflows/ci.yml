@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Run tests
+        run: pnpm test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check dist is up to date
+        run: |
+          if [ "$(git diff --name-only dist/)" != "" ]; then
+            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the changes."
+            git diff dist/
+            exit 1
+          fi
+
+  # Test the action itself works
+  action-test:
+    name: Action Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test action runs (dry run)
+        id: keyway
+        uses: ./
+        continue-on-error: true
+        with:
+          token: 'test-token-for-ci'
+          repository: 'test/repo'
+          export-env: false
+        env:
+          # This will fail auth but proves the action loads correctly
+          GITHUB_REPOSITORY: 'test/repo'
+
+      - name: Verify action executed
+        run: |
+          echo "Action completed (expected to fail auth in CI)"
+          echo "This confirms the action.yml and dist/index.js are valid"

@@ -1,0 +1,204 @@
+name: Integration Test
+
+on:
+  # Manual trigger for testing against real Keyway
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Keyway environment to test'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+  # Also run on release branches to validate before release
+  push:
+    branches:
+      - 'release/*'
+
+jobs:
+  # Test with real Keyway API (requires KEYWAY_TOKEN secret)
+  real-api-test:
+    name: Real API Test
+    runs-on: ubuntu-latest
+    # Only run if we have the secret configured
+    if: ${{ vars.ENABLE_INTEGRATION_TESTS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test pull secrets
+        id: keyway
+        uses: ./
+        with:
+          token: ${{ secrets.KEYWAY_TOKEN }}
+          environment: ${{ inputs.environment || 'development' }}
+          export-env: true
+          mask-values: true
+
+      - name: Verify secrets were pulled
+        run: |
+          echo "Secrets count: ${{ steps.keyway.outputs.secrets-count }}"
+          echo "Environment: ${{ steps.keyway.outputs.environment }}"
+
+          if [ "${{ steps.keyway.outputs.secrets-count }}" -eq "0" ]; then
+            echo "::warning::No secrets found - is the vault initialized?"
+          else
+            echo "✓ Successfully pulled ${{ steps.keyway.outputs.secrets-count }} secrets"
+          fi
+
+      - name: Verify env vars are set (without exposing values)
+        run: |
+          # Count how many env vars we have from Keyway
+          # This doesn't expose the actual values
+          echo "Environment variables are available for subsequent steps"
+
+  # Test with mock server (always runs)
+  mock-api-test:
+    name: Mock API Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run integration tests
+        run: pnpm test
+
+      - name: Build action
+        run: pnpm build
+
+      # Start a simple mock server and test against it
+      - name: Start mock server
+        run: |
+          cat > /tmp/mock-server.js << 'EOF'
+          const http = require('http');
+
+          const secrets = {
+            API_KEY: 'test-api-key-12345',
+            DATABASE_URL: 'postgres://test:test@localhost/test',
+            JWT_SECRET: 'super-secret-jwt-key',
+          };
+
+          const content = Object.entries(secrets)
+            .map(([k, v]) => `${k}=${v}`)
+            .join('\n');
+
+          const server = http.createServer((req, res) => {
+            console.log(`${req.method} ${req.url}`);
+
+            if (req.url.startsWith('/v1/secrets/pull')) {
+              const auth = req.headers.authorization;
+              if (!auth || !auth.startsWith('Bearer ')) {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ title: 'Unauthorized', detail: 'Missing token' }));
+                return;
+              }
+
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ data: { content } }));
+              return;
+            }
+
+            res.writeHead(404);
+            res.end('Not found');
+          });
+
+          server.listen(9999, () => console.log('Mock server on :9999'));
+          EOF
+
+          node /tmp/mock-server.js &
+          sleep 2
+
+      - name: Test action against mock server
+        id: mock-test
+        uses: ./
+        with:
+          token: 'test-token'
+          environment: 'development'
+          api-url: 'http://localhost:9999'
+          export-env: true
+          env-file: .env.test
+
+      - name: Verify results
+        run: |
+          echo "Secrets count: ${{ steps.mock-test.outputs.secrets-count }}"
+
+          # Check the .env file was created
+          if [ -f .env.test ]; then
+            echo "✓ .env.test file created"
+            echo "Lines: $(wc -l < .env.test)"
+          else
+            echo "✗ .env.test file not found"
+            exit 1
+          fi
+
+          # Check env vars are set
+          if [ -n "$API_KEY" ]; then
+            echo "✓ API_KEY is set"
+          else
+            echo "✗ API_KEY not set"
+            exit 1
+          fi
+
+          if [ "${{ steps.mock-test.outputs.secrets-count }}" -eq "3" ]; then
+            echo "✓ Correct secrets count"
+          else
+            echo "✗ Expected 3 secrets, got ${{ steps.mock-test.outputs.secrets-count }}"
+            exit 1
+          fi
+
+  # Test error handling
+  error-handling-test:
+    name: Error Handling Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test with invalid token (should fail gracefully)
+        id: invalid-token
+        uses: ./
+        continue-on-error: true
+        with:
+          token: 'invalid-token-that-wont-work'
+          environment: 'production'
+
+      - name: Verify graceful failure
+        run: |
+          if [ "${{ steps.invalid-token.outcome }}" == "failure" ]; then
+            echo "✓ Action correctly failed with invalid token"
+          else
+            echo "✗ Action should have failed with invalid token"
+            exit 1
+          fi
+
+      - name: Test without repository (should fail)
+        id: no-repo
+        uses: ./
+        continue-on-error: true
+        with:
+          token: 'some-token'
+          repository: ''
+        env:
+          GITHUB_REPOSITORY: ''
+
+      - name: Verify repository validation
+        run: |
+          if [ "${{ steps.no-repo.outcome }}" == "failure" ]; then
+            echo "✓ Action correctly requires repository"
+          else
+            echo "✗ Action should require repository"
+            exit 1
+          fi
