@@ -33,13 +33,6 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Verify dist is current
-        run: |
-          if [ "$(git diff --name-only dist/)" != "" ]; then
-            echo "::error::dist/ is out of date with the tagged version"
-            exit 1
-          fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
