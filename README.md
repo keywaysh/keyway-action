@@ -1,5 +1,7 @@
 # Keyway Secrets GitHub Action
 
+[![.env by Keyway](https://keyway.sh/badge.svg?repo=keywaysh/keyway-action)](https://keyway.sh)
+
 Pull secrets from your [Keyway](https://keyway.sh) vault and export them as environment variables in your GitHub Actions workflows.
 
 ## Features
