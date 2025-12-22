@@ -105,7 +105,7 @@ jobs:
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `token` | Keyway authentication token | Yes | - |
+| `token` | Keyway API key or GitHub PAT | Yes | - |
 | `environment` | Vault environment | No | `production` |
 | `repository` | Repository (owner/repo) | No | Auto-detected |
 | `export-env` | Export as env vars | No | `true` |
@@ -122,16 +122,29 @@ jobs:
 
 ## Getting a Keyway Token
 
-### Option 1: GitHub Personal Access Token (Recommended for CI/CD)
+### Option 1: Keyway API Key (Recommended)
+
+API keys are the most secure option for CI/CD:
+
+1. Go to your [Keyway Dashboard](https://keyway.sh/dashboard/api-keys)
+2. Click "Create Key" and select the `read:secrets` scope
+3. Copy the generated key (starts with `kw_live_...`)
+4. Add it as your `KEYWAY_TOKEN` secret
+
+**Benefits of API keys:**
+- Scoped permissions (only what's needed)
+- Optional expiration dates
+- No access to your GitHub account
+- Usage tracking and audit logs
+
+### Option 2: GitHub Personal Access Token
 
 1. Create a [fine-grained PAT](https://github.com/settings/tokens?type=beta) with:
    - **Repository access**: Select the repos you want to use with Keyway
    - **Permissions**: Metadata → Read-only (no other permissions needed)
 2. Use this PAT as your `KEYWAY_TOKEN`
 
-This is the simplest method for CI/CD since the token is easy to copy and doesn't expire (unless you set an expiration).
-
-### Option 2: Keyway Token via CLI
+### Option 3: Keyway Token via CLI
 
 1. Install the Keyway CLI: `npm install -g @keywaysh/cli`
 2. Run `keyway login --token` and follow the prompts
@@ -230,8 +243,13 @@ jobs:
 ### "Authentication failed"
 
 - Verify your `KEYWAY_TOKEN` secret is set correctly
-- Check if the token has expired (re-run `keyway login`)
+- Check if the token has expired
 - Ensure the token has access to the repository
+
+### "API key missing required scope"
+
+- Your API key needs the `read:secrets` scope to pull secrets
+- Create a new API key with the correct scope in your [Keyway Dashboard](https://keyway.sh/dashboard/api-keys)
 
 ### "Vault not found"
 
