@@ -146,10 +146,9 @@ API keys are the most secure option for CI/CD:
 
 ### Option 3: Keyway Token via CLI
 
-1. Install the Keyway CLI: `npm install -g @keywaysh/cli`
-2. Run `keyway login --token` and follow the prompts
-3. The CLI will guide you through creating a GitHub PAT
-4. Use that same PAT as your `KEYWAY_TOKEN` in GitHub Actions
+1. Run `npx @keywaysh/cli login --token` and follow the prompts
+2. The CLI will guide you through creating a GitHub PAT
+3. Use that same PAT as your `KEYWAY_TOKEN` in GitHub Actions
 
 > **Note**: Tokens from `keyway login` (device flow without `--token`) are stored encrypted locally and cannot be easily extracted for CI/CD use. Use the `--token` flag to authenticate with a PAT you can reuse.
 
