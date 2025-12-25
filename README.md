@@ -24,7 +24,7 @@ Pull secrets from your [Keyway](https://keyway.sh) vault and export them as envi
 
 ### Basic Usage
 
-Pull production secrets and export as environment variables:
+Pull secrets and export as environment variables:
 
 ```yaml
 jobs:
@@ -53,7 +53,7 @@ jobs:
       - uses: keywaysh/keyway-action@v1
         with:
           token: ${{ secrets.KEYWAY_TOKEN }}
-          environment: development
+          environment: staging
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
       - uses: keywaysh/keyway-action@v1
         with:
           token: ${{ secrets.KEYWAY_TOKEN }}
-          environment: production
+          environment: cicd
 ```
 
 ### Write to .env File
@@ -82,8 +82,8 @@ jobs:
     # Required: Keyway authentication token
     token: ${{ secrets.KEYWAY_TOKEN }}
 
-    # Vault environment (default: production)
-    environment: production
+    # Vault environment (default: cicd)
+    environment: cicd
 
     # Repository in owner/repo format (auto-detected)
     repository: owner/repo
@@ -106,7 +106,7 @@ jobs:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `token` | Keyway API key or GitHub PAT | Yes | - |
-| `environment` | Vault environment | No | `production` |
+| `environment` | Vault environment | No | `cicd` |
 | `repository` | Repository (owner/repo) | No | Auto-detected |
 | `export-env` | Export as env vars | No | `true` |
 | `env-file` | Write to .env file | No | - |
@@ -180,7 +180,7 @@ jobs:
       - uses: keywaysh/keyway-action@v1
         with:
           token: ${{ secrets.KEYWAY_TOKEN }}
-          environment: production
+          environment: cicd
 
       - uses: amondnet/vercel-action@v25
         with:

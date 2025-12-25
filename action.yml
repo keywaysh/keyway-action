@@ -10,9 +10,9 @@ inputs:
     description: 'Keyway authentication token (from device flow or GitHub PAT)'
     required: true
   environment:
-    description: 'Vault environment to pull secrets from (development, staging, production)'
+    description: 'Vault environment to pull secrets from (e.g., cicd, staging, production)'
     required: false
-    default: 'production'
+    default: 'cicd'
   repository:
     description: 'Repository in owner/repo format (auto-detected from GITHUB_REPOSITORY if not specified)'
     required: false
