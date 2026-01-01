@@ -126,7 +126,7 @@ jobs:
 
 API keys are the most secure option for CI/CD:
 
-1. Go to your [Keyway Dashboard](https://keyway.sh/dashboard/api-keys)
+1. Go to your [Keyway Dashboard](https://app.keyway.sh/api-keys)
 2. Click "Create Key" and select the `read:secrets` scope
 3. Copy the generated key (starts with `kw_live_...`)
 4. Add it as your `KEYWAY_TOKEN` secret
@@ -248,7 +248,7 @@ jobs:
 ### "API key missing required scope"
 
 - Your API key needs the `read:secrets` scope to pull secrets
-- Create a new API key with the correct scope in your [Keyway Dashboard](https://keyway.sh/dashboard/api-keys)
+- Create a new API key with the correct scope in your [Keyway Dashboard](https://app.keyway.sh/api-keys)
 
 ### "Vault not found"
 
