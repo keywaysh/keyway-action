@@ -28,7 +28,7 @@ inputs:
     required: false
     default: 'true'
   api-url:
-    description: 'Keyway API URL (for enterprise/self-hosted installations)'
+    description: 'Keyway API URL. Self-hosted users should override this with their own API URL.'
     required: false
     default: 'https://api.keyway.sh'
 
